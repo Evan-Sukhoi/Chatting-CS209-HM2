@@ -1,14 +1,25 @@
 package cn.edu.sustech.cs209.chatting.client;
 
+import cn.edu.sustech.cs209.chatting.client.ClientService.ConnectionFailedException;
 import cn.edu.sustech.cs209.chatting.common.Message;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
@@ -17,66 +28,171 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicReference;
+import javafx.util.Pair;
 
 public class Controller implements Initializable {
-
     @FXML
-    ListView<Message> chatContentList;
-
+    ListView<Message> chatContentList = new ListView<>(); // 聊天内容
+    @FXML
+    ListView<String> chatList = new ListView<>();  // 会话列表ListView
+    ObservableList<String> items = FXCollections.observableArrayList(); // 会话列表Items
+    List<String> currentChats = new ArrayList<>(); // 会话列表List
+    ClientService clientService;
     String username;
+    String password;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        ClientService clientService = new ClientService();
+        clientService = new ClientService();
 
-        Dialog<String> dialog = new TextInputDialog();
-        dialog.setTitle("Login");
+        Dialog<Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Login or Sign in");
         dialog.setHeaderText(null);
-        dialog.setContentText("Username:");
 
-        Optional<String> input = dialog.showAndWait();
-        if (input.isPresent() && !input.get().isEmpty()) {
-            /*
-               TODO: Check if there is a user with the same name among the currently logged-in users,
-                     if so, ask the user to change the username
-             */
-            username = input.get();
-            while (! clientService.checkUser(username)) {
-                System.out.println("Invalid username " + input + ", exiting");
+        // 设置按钮
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // 创建用户名和密码的输入框
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Username");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+
+        // 将输入框添加到对话框
+        VBox content = new VBox(10);
+        content.getChildren().addAll(usernameField, passwordField);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return new Pair<>(usernameField.getText(), passwordField.getText());
+            } else {
                 Platform.exit();
-                username = input.get();
+                return null;
+            }
+        });
+
+//        dialog.setOnCloseRequest(event -> {
+//                Platform.exit();
+//        });
+
+        boolean validUsername = false;
+        while (!validUsername) {
+
+            Optional<Pair<String, String>> result = dialog.showAndWait();
+
+            if (result.isPresent()) {
+                username = result.get().getKey();
+                password = result.get().getValue();
+
+                if (username.trim().isEmpty() || password.trim().isEmpty()) {
+                    // 显示警告框
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Please enter username or password!");
+
+                    ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                    alert.getButtonTypes().setAll(okButton);
+
+                    alert.showAndWait();
+                    // 保持循环，让用户重新输入
+                } else {
+                    try {
+                        if (clientService.checkUser(username, password)) {
+                            // 用户名有效
+                            validUsername = true;
+                            chatContentList.setCellFactory(new MessageCellFactory());
+                        } else {
+                            // 显示警告框
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("Login Failed");
+                            alert.setHeaderText(null);
+                            alert.setContentText(
+                                "The user has logged in, or wrong password.\nPlease check the username or password and try again.");
+
+                            ButtonType okButton = new ButtonType("OK",
+                                ButtonBar.ButtonData.OK_DONE);
+                            alert.getButtonTypes().setAll(okButton);
+
+                            alert.showAndWait();
+                            // 保持循环，让用户重新输入
+                        }
+                    } catch (ConnectionFailedException e) {
+                        // 显示警告框
+                        Alert alert = new Alert(Alert.AlertType.WARNING);
+                        alert.setTitle("Connection Error");
+                        alert.setHeaderText(null);
+                        alert.setContentText(
+                            "Cannot connect to the server. Please check your network connection and try again.");
+
+                        ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+                        alert.getButtonTypes().setAll(okButton);
+
+                        alert.showAndWait();
+                        // 保持循环，让用户重新输入
+                    }
+                }
+            } else {
+                // 用户点击了 "Cancel" 按钮，直接关闭窗口
+                Platform.exit();
+                break;
             }
         }
-
-        chatContentList.setCellFactory(new MessageCellFactory());
     }
 
     @FXML
-    public void createPrivateChat() {
+    public void createPrivateChat() throws InterruptedException {
         AtomicReference<String> user = new AtomicReference<>();
 
-        Stage stage = new Stage();
-        ComboBox<String> userSel = new ComboBox<>();
-
         // FIXME: get the user list from server, the current user's name should be filtered out
-        userSel.getItems().addAll("Item 1", "Item 2", "Item 3");
+        clientService.getOnlineList();
+        Thread.sleep(1000);
+        if (clientService.thread.onlineFriends.size() == 0) {
+            System.out.println("no friends online");
+            // 显示警告框 - 当前没有好友在线
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("No Friends Online");
+            alert.setHeaderText(null);
+            alert.setContentText("Oops, there is no friend online.");
+            ButtonType okButton = new ButtonType("OK",
+                ButtonBar.ButtonData.OK_DONE);
+            alert.getButtonTypes().setAll(okButton);
+            alert.showAndWait();
+        } else {
 
-        Button okBtn = new Button("OK");
-        okBtn.setOnAction(e -> {
-            user.set(userSel.getSelectionModel().getSelectedItem());
-            stage.close();
-        });
+            Stage stage = new Stage();
+            ComboBox<String> userSel = new ComboBox<>();
+            userSel.getItems().addAll(clientService.thread.onlineFriends);
+            userSel.getSelectionModel().selectFirst();
 
-        HBox box = new HBox(10);
-        box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(20, 20, 20, 20));
-        box.getChildren().addAll(userSel, okBtn);
-        stage.setScene(new Scene(box));
-        stage.showAndWait();
+            Button okBtn = new Button("OK");
+            okBtn.setOnAction(e -> {
+                user.set(userSel.getSelectionModel().getSelectedItem());
+                stage.close();
+            });
+
+            Label titleLabel = new Label("Select a Friend:");
+            HBox box = new HBox(10);
+            box.setAlignment(Pos.CENTER);
+            box.setPadding(new Insets(30, 40, 40, 40));
+            box.getChildren().addAll(titleLabel, userSel, okBtn);
+            stage.setScene(new Scene(box));
+            stage.showAndWait();
+        }
 
         // TODO: if the current user already chatted with the selected user, just open the chat with that user
+        if (currentChats.contains(user.get())) {
+            chatList.getSelectionModel().select(user.get());
+        }
         // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
+        else {
+            currentChats.add(user.get());
+            items.add(user.get());
+            chatList.setItems(items);
+            chatList.getSelectionModel().select(user.get());
+        }
     }
 
     /**
@@ -89,7 +205,61 @@ public class Controller implements Initializable {
      * ellipsis, for example: UserA, UserB (2)
      */
     @FXML
-    public void createGroupChat() {
+    public void createGroupChat() throws InterruptedException, IOException {
+        List<AtomicReference<String>> users = new ArrayList<>();
+        clientService.getAllFriendList();
+        Thread.sleep(1000);
+
+        Stage stage = new Stage();
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("groupSel.fxml"));
+        // 加载FXML文件
+        fxmlLoader.load();
+        // 获取FXML文件中的所有命名空间组件
+        Map<String, Object> namespace = fxmlLoader.getNamespace();
+
+        System.out.println(namespace);
+
+        // 通过fx:id值从命名空间映射中获取ListView组件
+        ListView<CheckBox> allFriends = (ListView<CheckBox>) namespace.get("allFriends");
+
+        // 将List<String>转换为List<CheckBox>并添加到ListView中
+        List<CheckBox> checkBoxes = clientService.thread.allFriends.stream()
+            .map(CheckBox::new)
+            .collect(Collectors.toList());
+        allFriends.getItems().addAll(checkBoxes);
+
+        stage.setScene(new Scene((Parent) namespace.get("groupSel")));
+        stage.setTitle("Select Friends");
+        Button btn_OK = (Button) namespace.get("btn_OK");
+        Button btn_Cancel = (Button) namespace.get("btn_Cancel");
+        btn_OK.setOnAction(e -> {
+            // 获取所有选中的CheckBox
+            List<CheckBox> selectedCheckBoxes = allFriends.getItems().stream()
+                .filter(CheckBox::isSelected)
+                .collect(Collectors.toList());
+            // 将选中的CheckBox的文本添加到users中
+            users.addAll(selectedCheckBoxes.stream()
+                .map(checkBox -> new AtomicReference<>(checkBox.getText()))
+                .collect(Collectors.toList()));
+            stage.close();
+        });
+        btn_Cancel.setOnAction(e -> {
+            stage.close();
+        });
+        stage.showAndWait();
+
+        // 将users按照字典序排序
+
+        String name = "groupName";
+        if(currentChats.contains(name)){
+            chatList.getSelectionModel().select(name);
+        }else {
+            currentChats.add(name);
+            items.add(name);
+            chatList.setItems(items);
+            chatList.getSelectionModel().select(name);
+        }
+
     }
 
     /**

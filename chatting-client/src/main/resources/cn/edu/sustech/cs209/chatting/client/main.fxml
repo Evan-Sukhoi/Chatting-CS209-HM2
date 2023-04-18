@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Menu?>
@@ -9,45 +10,79 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
-    <MenuBar VBox.vgrow="NEVER">
-        <Menu mnemonicParsing="false" text="Chat">
-            <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat"/>
-            <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat"/>
+<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
+    <MenuBar prefHeight="0.0" prefWidth="900.0" VBox.vgrow="NEVER">
+        <Menu mnemonicParsing="false" text="New">
+            <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat" />
+            <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat" />
         </Menu>
+      <Menu mnemonicParsing="false" text="Settings">
+        <items>
+          <MenuItem mnemonicParsing="false" text="Color" />
+        </items>
+      </Menu>
+      <Menu mnemonicParsing="false" text="About">
+        <items>
+          <MenuItem mnemonicParsing="false" text="License">
+               <graphic>
+                  <Hyperlink text="https://github.com/Evan-Sukhoi/Chatting-CS209-HM2" />
+               </graphic>
+            </MenuItem>
+        </items>
+      </Menu>
     </MenuBar>
     <SplitPane dividerPositions="0.25" focusTraversable="true" VBox.vgrow="ALWAYS">
-        <ListView fx:id="chatList" prefHeight="200.0" prefWidth="200.0"/>
-        <SplitPane dividerPositions="0.85" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
-            <ListView fx:id="chatContentList" prefHeight="200.0" prefWidth="200.0"/>
-            <HBox prefHeight="100.0" prefWidth="200.0">
-                <TextArea fx:id="inputArea" prefHeight="138.0" prefWidth="624.0" HBox.hgrow="ALWAYS"/>
-                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage"
-                        text="Send" HBox.hgrow="ALWAYS"/>
+        <ListView fx:id="chatList" prefHeight="551.0" prefWidth="45.0" style="-fx-background-color: #fff0f5;" />
+        <SplitPane dividerPositions="0.649854862119013, 0.5" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
+            <ListView fx:id="chatContentList" prefHeight="370.0" prefWidth="671.0" style="-fx-background-color: #ffffff;" />
+         <ToolBar prefHeight="85.0" prefWidth="671.0" style="-fx-background-color: #fdf5e6;">
+           <items>
+               <Button mnemonicParsing="false" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Emoji">
+                  <font>
+                     <Font name="Monaco" size="12.0" />
+                  </font>
+               </Button>
+               <Button mnemonicParsing="false" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Image">
+                  <font>
+                     <Font name="Monaco" size="12.0" />
+                  </font>
+               </Button>
+             <Button mnemonicParsing="false" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text=" File ">
+                  <font>
+                     <Font name="Monaco" size="12.0" />
+                  </font>
+               </Button>
+           </items>
+         </ToolBar>
+            <HBox prefHeight="252.0" prefWidth="219.0">
+                <TextArea fx:id="inputArea" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="105.0" prefWidth="599.0" style="-fx-control-inner-background: #fffafa;" />
+                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage" prefHeight="110.0" prefWidth="76.0" style="-fx-background-color: #E1FFFF;" text="Send" textAlignment="CENTER" textFill="#49bdd1" HBox.hgrow="ALWAYS">
+               <font>
+                  <Font name="Monaco" size="18.0" />
+               </font></Button>
             </HBox>
         </SplitPane>
     </SplitPane>
     <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
         <padding>
-            <Insets bottom="3.0" left="3.0" right="3.0" top="3.0"/>
+            <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />
         </padding>
-        <Label fx:id="currentUsername" maxHeight="1.7976931348623157E308"
-               text="Current User: USERNAME" HBox.hgrow="ALWAYS">
+        <Label fx:id="currentUsername" maxHeight="1.7976931348623157E308" text="Current User: USERNAME" HBox.hgrow="ALWAYS">
             <font>
-                <Font size="11.0" fx:id="x3"/>
+                <Font size="11.0" fx:id="x3" />
             </font>
             <textFill>
-                <Color red="0.625" green="0.625" blue="0.625" fx:id="x4"/>
+                <Color red="0.625" green="0.625" blue="0.625" fx:id="x4" />
             </textFill>
         </Label>
-        <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="currentOnlineCnt" font="$x3" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER"/>
+        <Pane prefHeight="0.0" prefWidth="702.0" HBox.hgrow="ALWAYS" />
+        <Label fx:id="currentOnlineCnt" font="$x3" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER" />
     </HBox>
 </VBox>

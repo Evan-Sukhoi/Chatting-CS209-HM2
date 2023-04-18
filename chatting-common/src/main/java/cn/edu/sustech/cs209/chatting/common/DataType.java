@@ -9,4 +9,6 @@ public interface DataType {
     String MESSAGE_CLIENT_EXIT = "6"; //客户请求退出
     String MESSAGE_CLIENT_NO_EXIST = "7"; //发送目标不存在
     String MESSAGE_CLIENT_OFFLINE = "8"; //发送目标不在线
+    String MESSAGE_GET_ALL_FRIEND = "9"; //请求得到所有用户列表
+    String MESSAGE_RET_ALL_FRIEND = "10"; //返回所有用户列表
 }

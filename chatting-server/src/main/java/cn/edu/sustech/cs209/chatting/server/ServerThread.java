@@ -20,13 +20,14 @@ public class ServerThread extends Thread {
         this.user = user;
     }
 
-    public Socket getSocket(){
+    public Socket getSocket() {
         return socket;
     }
 
     @Override
     public void run() {
         System.out.println("服务器与客户【" + user.getUserID() + "】保持通信……");
+        inProgress = true;
         while (inProgress) {
             try {
                 ois = new ObjectInputStream(socket.getInputStream());
@@ -42,13 +43,34 @@ public class ServerThread extends Thread {
         try {
             switch (msg.getDataType()) {
                 case DataType.MESSAGE_GET_ONLINE_FRIEND:
-                    // TODO:
+                    System.out.println(
+                        "服务器收到来自客户【" + user.getUserID() + "】的在线好友列表请求");
+                    //构建一个Message对象，准备回复
+                    Message rtnMsg = new Message();
+                    rtnMsg.setDataType(DataType.MESSAGE_RET_ONLINE_FRIEND);
+                    rtnMsg.setSendTo(msg.getSentBy());
+                    rtnMsg.setSentBy("Server");
+                    rtnMsg.setData(ServerService.getOnlineList());
+                    oos = new ObjectOutputStream(socket.getOutputStream());
+                    oos.writeObject(rtnMsg);
+                    break;
+                case DataType.MESSAGE_GET_ALL_FRIEND:
+                    System.out.println(
+                        "服务器收到来自客户【" + user.getUserID() + "】的所有好友列表请求");
+                    //构建一个Message对象，准备回复
+                    Message rtnMsg2 = new Message();
+                    rtnMsg2.setDataType(DataType.MESSAGE_RET_ALL_FRIEND);
+                    rtnMsg2.setSendTo(msg.getSentBy());
+                    rtnMsg2.setSentBy("Server");
+                    rtnMsg2.setData(ServerService.getAllList());
+                    oos = new ObjectOutputStream(socket.getOutputStream());
+                    oos.writeObject(rtnMsg2);
                     break;
                 case DataType.MESSAGE_COMM_MES:
                     // TODO: Common message display
                     break;
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

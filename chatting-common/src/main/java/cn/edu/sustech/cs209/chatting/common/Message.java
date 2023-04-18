@@ -29,6 +29,12 @@ public class Message implements Serializable{
 
     public Message(){}
 
+    public Message(String sendBy, String sendTo, String messageGetOnlineFriend) {
+        this.sentBy = sendBy;
+        this.sendTo = sendTo;
+        this.dataType = messageGetOnlineFriend;
+    }
+
     public Long getTimestamp() {
         return timestamp;
     }
