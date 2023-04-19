@@ -1,5 +1,6 @@
 package cn.edu.sustech.cs209.chatting.client;
 
+import cn.edu.sustech.cs209.chatting.common.Chat;
 import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.User;
 import cn.edu.sustech.cs209.chatting.common.DataType;
@@ -21,6 +22,11 @@ public class ClientService {
     private ObjectOutputStream oos;
     private ObjectInputStream ois;
     boolean logged = false;
+    final Controller controller;
+
+    public ClientService(Controller controller) {
+        this.controller = controller;
+    }
 
     boolean checkUser(String userID, String password) throws ConnectionFailedException {
         try {
@@ -36,7 +42,7 @@ public class ClientService {
             Message msg = (Message) ois.readObject();
 
             if (msg.getDataType().equals(DataType.MESSAGE_LOGIN_PERMITTED)) {
-                thread = new ClientThread(socket, user);
+                thread = new ClientThread(socket, user, controller);
                 thread.start();
                 logged = true;
             } else {
@@ -52,7 +58,7 @@ public class ClientService {
     }
 
     public void getOnlineList() {
-        Message msg = new Message(user.getUserID(), "Server", DataType.MESSAGE_GET_ONLINE_FRIEND);
+        Message msg = new Message(user.getUserID(), DataType.MESSAGE_GET_ONLINE_FRIEND);
         try {
             oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(msg);
@@ -62,10 +68,30 @@ public class ClientService {
     }
 
     public void getAllFriendList() {
-        Message msg = new Message(user.getUserID(), "Server", DataType.MESSAGE_GET_ALL_FRIEND);
+        Message msg = new Message(user.getUserID(), DataType.MESSAGE_GET_ALL_FRIEND);
         try{
             oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public synchronized void stopRunning() {
+        thread.inProgress = false;
+    }
+    public void sendMessage(Message msg) {
+        try {
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.writeObject(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendChat(Chat chat) {
+        try {
+            oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.writeObject(chat);
         } catch (IOException e) {
             e.printStackTrace();
         }

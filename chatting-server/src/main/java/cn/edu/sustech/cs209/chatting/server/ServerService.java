@@ -1,5 +1,6 @@
 package cn.edu.sustech.cs209.chatting.server;
 
+import cn.edu.sustech.cs209.chatting.common.Chat;
 import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.User;
 import cn.edu.sustech.cs209.chatting.common.DataType;
@@ -12,12 +13,12 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class ServerService {
 
     public static ConcurrentHashMap<String, ServerThread> threadMap = new ConcurrentHashMap<>();
-    public static ConcurrentHashMap<String, LinkedBlockingQueue<Message>> msgMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, List<Chat>> userChatMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Chat> chatList = new ConcurrentHashMap<>();
 
     public static void addThread(String userID, ServerThread thread) {
         threadMap.put(userID, thread);
@@ -41,25 +42,6 @@ public class ServerService {
             sb.append(userID).append(",");
         }
         return sb.toString();
-    }
-
-    public static void sendOffLineMessage(String userId, ObjectOutputStream oos) {
-//        Vector<Message> vector = messageMap.get(userId); //得到库存信息
-//        if (!(vector == null || vector.isEmpty())) {
-//            try {
-//                //说明当前用户有待发送消息
-//                Socket socket = getSocketById(userId);
-//                while (!vector.isEmpty()) {
-//                    Message message = vector.get(0);
-//                    //将消息按顺序发出去
-//                    oos = new ObjectOutputStream(socket.getOutputStream());
-//                    oos.writeObject(message);
-//                    vector.remove(message);
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
     public static ConcurrentHashMap<String, User> readUserMap(String filePath) {
@@ -88,5 +70,38 @@ public class ServerService {
         }
     }
 
+    public static void removeThread(String userID) {
+        if (threadMap.containsKey(userID)) {
+            threadMap.remove(userID);
+            System.out.println("用户【" + userID + "】已下线");
+        }
+    }
 
+    public static void sendPrvMsg(Message rtnMsg) {
+        String receiver = rtnMsg.getSendTo();
+        if (checkThread(receiver)) {
+            ServerThread thread = threadMap.get(receiver);
+            thread.sendMsg(rtnMsg);
+        }
+        Chat chat = chatList.get(rtnMsg.getChatID());
+        chat.getMessages().add(rtnMsg);
+    }
+
+    public static void sendGrpMsg(Message rtnMsg) {
+        String chatID = rtnMsg.getChatID();
+        Chat chat = chatList.get(chatID);
+        String[] members = chat.getMembers();
+        for (String member : members) {
+            if (checkThread(member)) {
+                ServerThread thread = threadMap.get(member);
+                thread.sendMsg(rtnMsg);
+            }
+        }
+        chat.getMessages().add(rtnMsg);
+    }
+
+    public static void sendChat(Chat chat, String receiver) {
+        ServerThread thread = threadMap.get(receiver);
+        thread.sendChat(chat);
+    }
 }

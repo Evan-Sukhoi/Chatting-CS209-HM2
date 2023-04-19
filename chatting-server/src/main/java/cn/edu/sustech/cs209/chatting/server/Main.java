@@ -58,12 +58,21 @@ public class Main {
                 }
 
                 if (login){
+                    // TODO:
                     msg.setDataType(DataType.MESSAGE_LOGIN_PERMITTED);
                     oos.writeObject(msg);
                     ServerThread thread = new ServerThread(socket, user);
                     thread.start();
                     ServerService.addThread(user.getUserID(), thread);
-                    ServerService.sendOffLineMessage(user.getUserID(), oos);
+//                    ServerService.sendOffLineMessage(user.getUserID(), oos);
+
+                    // 添加一个关闭线程的检查
+                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                        if (thread.inProgress) {
+                            thread.stopRunning();
+                            ServerService.removeThread(user.getUserID());
+                        }
+                    }));
                 }
 
             }

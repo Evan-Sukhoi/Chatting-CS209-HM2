@@ -1,15 +1,22 @@
 package cn.edu.sustech.cs209.chatting.client;
 
 import cn.edu.sustech.cs209.chatting.client.ClientService.ConnectionFailedException;
+import cn.edu.sustech.cs209.chatting.common.Chat;
+import cn.edu.sustech.cs209.chatting.common.DataType;
 import cn.edu.sustech.cs209.chatting.common.Message;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -21,6 +28,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
 import java.net.URL;
@@ -31,12 +39,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import javafx.util.Pair;
 
 public class Controller implements Initializable {
+
+    @FXML
+    public TextArea inputArea;
     @FXML
     ListView<Message> chatContentList = new ListView<>(); // 聊天内容
     @FXML
-    ListView<String> chatList = new ListView<>();  // 会话列表ListView
-    ObservableList<String> items = FXCollections.observableArrayList(); // 会话列表Items
-    List<String> currentChats = new ArrayList<>(); // 会话列表List
+    public ListView<Chat> chatList = new ListView<>();  // 会话列表ListView
+    public ObservableList<Chat> items = FXCollections.observableArrayList(); // 会话列表Items
+    public static ConcurrentHashMap<String, Chat> currentChats = new ConcurrentHashMap<>(); // 会话列表 map
     ClientService clientService;
     String username;
     String password;
@@ -44,7 +55,7 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
 
-        clientService = new ClientService();
+        clientService = new ClientService(this);
 
         Dialog<Pair<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Login or Sign in");
@@ -104,6 +115,41 @@ public class Controller implements Initializable {
                             // 用户名有效
                             validUsername = true;
                             chatContentList.setCellFactory(new MessageCellFactory());
+                            // 在成功登录后，为聊天窗口添加关闭请求处理程序
+                            Platform.runLater(this::addCloseRequestHandler);
+
+                            // 将会话列表的ListView显示为聊天名称
+                            Platform.runLater(() -> {
+                                chatList.setItems(items);
+                                chatList.setCellFactory(param -> new ListCell<Chat>() {
+                                    @Override
+                                    protected void updateItem(Chat chat, boolean empty) {
+                                        super.updateItem(chat, empty);
+                                        if (empty || chat == null) {
+                                            Platform.runLater(() -> setText(null));
+                                        } else {
+                                            synchronized (chat) {
+                                                String chatName = chat.getChatName(username);
+                                                Platform.runLater(() -> setText(chatName));
+                                            }
+                                        }
+                                    }
+                                });
+                            });
+
+                            // 为会话列表添加点击事件
+                            chatList.setOnMouseClicked(event -> {
+                                if (event.getClickCount() == 1) {
+                                    Chat chat = chatList.getSelectionModel().getSelectedItem();
+                                    if (chat != null) {
+                                        // 将聊天内容显示在聊天窗口
+                                        ObservableList<Message> messages = FXCollections.observableArrayList();
+                                        messages.addAll(chat.getMessages());
+                                        chatContentList.setItems(messages);
+                                        chatContentList.scrollTo(chat.getMessages().size() - 1);
+                                    }
+                                }
+                            });
                         } else {
                             // 显示警告框
                             Alert alert = new Alert(Alert.AlertType.WARNING);
@@ -142,20 +188,38 @@ public class Controller implements Initializable {
         }
     }
 
+    public void addCloseRequestHandler() {
+        // 获取聊天窗口的Stage
+        Stage chatWindowStage = (Stage) chatContentList.getScene().getWindow();
+
+        // 设置关闭请求处理程序
+        chatWindowStage.setOnCloseRequest(event -> {
+            windowClosing();
+        });
+    }
+
+    private void windowClosing() {
+        Message logoutMessage = new Message(username, DataType.MESSAGE_CLIENT_EXIT);
+        clientService.sendMessage(logoutMessage);
+        System.out.println("Client apply to exit.");
+        // 停止客户端线程
+        clientService.stopRunning();
+    }
+
     @FXML
     public void createPrivateChat() throws InterruptedException {
         AtomicReference<String> user = new AtomicReference<>();
 
         // FIXME: get the user list from server, the current user's name should be filtered out
-        clientService.getOnlineList();
+        clientService.getAllFriendList();
         Thread.sleep(1000);
-        if (clientService.thread.onlineFriends.size() == 0) {
-            System.out.println("no friends online");
-            // 显示警告框 - 当前没有好友在线
+        if (clientService.thread.allFriends.size() == 0) {
+            System.out.println("no friends");
+            // 显示警告框 - 当前没有好友
             Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("No Friends Online");
+            alert.setTitle("No Friends");
             alert.setHeaderText(null);
-            alert.setContentText("Oops, there is no friend online.");
+            alert.setContentText("Oops, there is no friend.");
             ButtonType okButton = new ButtonType("OK",
                 ButtonBar.ButtonData.OK_DONE);
             alert.getButtonTypes().setAll(okButton);
@@ -164,34 +228,39 @@ public class Controller implements Initializable {
 
             Stage stage = new Stage();
             ComboBox<String> userSel = new ComboBox<>();
-            userSel.getItems().addAll(clientService.thread.onlineFriends);
+            userSel.getItems().addAll(clientService.thread.allFriends);
             userSel.getSelectionModel().selectFirst();
 
             Button okBtn = new Button("OK");
-            okBtn.setOnAction(e -> {
-                user.set(userSel.getSelectionModel().getSelectedItem());
-                stage.close();
-            });
+            try {
+                okBtn.setOnAction(e -> {
+                    user.set(userSel.getSelectionModel().getSelectedItem());
+                    stage.close();
+                });
 
-            Label titleLabel = new Label("Select a Friend:");
-            HBox box = new HBox(10);
-            box.setAlignment(Pos.CENTER);
-            box.setPadding(new Insets(30, 40, 40, 40));
-            box.getChildren().addAll(titleLabel, userSel, okBtn);
-            stage.setScene(new Scene(box));
-            stage.showAndWait();
-        }
+                Label titleLabel = new Label("Select a Friend:");
+                HBox box = new HBox(10);
+                box.setAlignment(Pos.CENTER);
+                box.setPadding(new Insets(30, 40, 40, 40));
+                box.getChildren().addAll(titleLabel, userSel, okBtn);
+                stage.setScene(new Scene(box));
+                stage.showAndWait();
 
-        // TODO: if the current user already chatted with the selected user, just open the chat with that user
-        if (currentChats.contains(user.get())) {
-            chatList.getSelectionModel().select(user.get());
-        }
-        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
-        else {
-            currentChats.add(user.get());
-            items.add(user.get());
-            chatList.setItems(items);
-            chatList.getSelectionModel().select(user.get());
+                Chat chat = new Chat(username, user.get());
+                // TODO: if the current user already chatted with the selected user, just open the chat with that user
+                // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
+                if (!currentChats.containsKey(chat.getChatID())) {
+                    currentChats.put(chat.getChatID(), chat);
+                    items.add(chat);
+                    chatList.setItems(items);
+                    // send the new chat to server
+                    clientService.sendChat(chat);
+                }
+                chatList.getSelectionModel().select(chat);
+                changeChat(chat.getMessages());
+            } catch (RuntimeException e) {
+                return;
+            }
         }
     }
 
@@ -248,29 +317,74 @@ public class Controller implements Initializable {
         });
         stage.showAndWait();
 
-        // 将users按照字典序排序
+        // 将当前用户添加到users中
+        users.add(new AtomicReference<>(username));
 
-        String name = "groupName";
-        if(currentChats.contains(name)){
-            chatList.getSelectionModel().select(name);
-        }else {
-            currentChats.add(name);
-            items.add(name);
-            chatList.setItems(items);
-            chatList.getSelectionModel().select(name);
+        // 将users按照字典序排序
+        users.sort(Comparator.comparing(AtomicReference::get));
+        String name = "";
+
+        // 处理群聊名称
+        if (users.size() > 3) {
+            name =
+                users.get(0).get() + ", " + users.get(1).get() + ", " + users.get(2).get() + "... ("
+                    + users.size() + ")";
+        } else {
+            for (AtomicReference<String> user : users) {
+                name += user.get() + ", ";
+            }
+            name = name.substring(0, name.length() - 2) + " (" + users.size() + ")";
         }
 
+        Chat chat = new Chat(users, name);
+        if (!currentChats.contains(chat)) {
+            currentChats.put(chat.getChatID(), chat);
+            items.add(chat);
+            chatList.setItems(items);
+
+            clientService.sendChat(chat);
+        }
+        chatList.getSelectionModel().select(chat);
+        changeChat(chat.getMessages());
     }
 
     /**
-     * Sends the message to the <b>currently selected</b> chat.
-     * <p>
-     * Blank messages are not allowed. After sending the message, you should clear the text input
-     * field.
+     * Sends the message to the currently selected chat. Blank messages are not allowed. After
+     * sending the message, you should clear the text input field.
      */
     @FXML
     public void doSendMessage() {
-        // TODO
+        String msgContent = inputArea.getText();
+        if (msgContent.equals("")) {
+            return;
+        }
+        Chat chat = chatList.getSelectionModel().getSelectedItem();
+        Message msg = new Message(username, chat.getChatID(), msgContent);
+        if (chat.getChatType().equals("private")) {
+            msg.setSendTo(chat.getMembers(username)[0]);
+        }
+        // 设置消息发送时间
+        LocalDateTime time = LocalDateTime.now();
+        msg.setSentTime(time);
+        // 设置消息类型（text）
+        msg.setDataType(DataType.MESSAGE_TEXT_MESSAGE);
+
+        // 发送消息
+        clientService.sendMessage(msg);
+
+        inputArea.clear();
+        chat.getMessages().add(msg);
+
+        chatContentList.getItems().add(msg);
+    }
+
+    // 当聊天对象发生变化时调用此方法
+    public void changeChat(List<Message> messagesForNewChat) {
+        // 将新聊天的消息列表转换为ObservableList
+        ObservableList<Message> newMessages = FXCollections.observableArrayList(messagesForNewChat);
+
+        // 更新ListView中的消息
+        chatContentList.setItems(newMessages);
     }
 
     /**
@@ -285,9 +399,11 @@ public class Controller implements Initializable {
             return new ListCell<Message>() {
 
                 @Override
-                public void updateItem(Message msg, boolean empty) {
+                public void updateItem(Message msg, boolean empty) { // 更新列表
                     super.updateItem(msg, empty);
                     if (empty || Objects.isNull(msg)) {
+                        setGraphic(null);
+                        setText(null);
                         return;
                     }
 
