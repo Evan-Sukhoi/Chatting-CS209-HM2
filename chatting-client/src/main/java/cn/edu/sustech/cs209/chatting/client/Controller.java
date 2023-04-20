@@ -4,10 +4,13 @@ import cn.edu.sustech.cs209.chatting.client.ClientService.ConnectionFailedExcept
 import cn.edu.sustech.cs209.chatting.common.Chat;
 import cn.edu.sustech.cs209.chatting.common.DataType;
 import cn.edu.sustech.cs209.chatting.common.Message;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -16,17 +19,22 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
@@ -42,6 +50,11 @@ public class Controller implements Initializable {
 
     @FXML
     public TextArea inputArea;
+    public Label currentUsername;
+    public Label currentOnlineCnt;
+    public Button emojiButton;
+    public Button imageButton;
+    public Button fileButton;
     @FXML
     ListView<Message> chatContentList = new ListView<>(); // 聊天内容
     @FXML
@@ -117,6 +130,13 @@ public class Controller implements Initializable {
                             chatContentList.setCellFactory(new MessageCellFactory());
                             // 在成功登录后，为聊天窗口添加关闭请求处理程序
                             Platform.runLater(this::addCloseRequestHandler);
+
+                            // 将当前用户名显示在聊天窗口的标题栏
+                            Platform.runLater(() -> currentUsername.setText("User: " + username));
+
+                            // 将当前在线人数显示在聊天窗口的标题栏
+                            Platform.runLater(() -> currentOnlineCnt.setText(
+                                "Online: " + (clientService.getOnlineCount() + 1)));
 
                             // 将会话列表的ListView显示为聊天名称
                             Platform.runLater(() -> {
@@ -253,6 +273,8 @@ public class Controller implements Initializable {
                     currentChats.put(chat.getChatID(), chat);
                     items.add(chat);
                     chatList.setItems(items);
+                    LocalDateTime now = LocalDateTime.now();
+                    chat.setLatestTime(now);
                     // send the new chat to server
                     clientService.sendChat(chat);
                 }
@@ -378,6 +400,89 @@ public class Controller implements Initializable {
         chatContentList.getItems().add(msg);
     }
 
+    public void doSendEmoji() {
+    }
+
+    public void doSendImage() {
+        // 创建一个文件选择器对象
+        FileChooser fileChooser = new FileChooser();
+
+        // 设置文件选择器的标题
+        fileChooser.setTitle("Select Image");
+
+        // 设置文件类型过滤器
+        FileChooser.ExtensionFilter imageFilter = new FileChooser.ExtensionFilter("Image Files",
+            "*.jpg", "*.png", "*.gif", "*.jpeg", "*.bmp", "*.ico");
+        fileChooser.getExtensionFilters().add(imageFilter);
+
+        // 显示文件选择窗口并获取选择的文件
+        File selectedFile = fileChooser.showOpenDialog(null);
+
+        // 检查用户是否选择了文件
+        if (selectedFile != null) {
+            // 在这里处理选定的文件
+            packFile(selectedFile, "image");
+        }
+    }
+
+    public void doSendFile() {
+        // 创建一个文件选择器对象
+        FileChooser fileChooser = new FileChooser();
+
+        // 设置文件选择器的标题
+        fileChooser.setTitle("Select File");
+
+        // 显示文件选择窗口并获取选择的文件
+        File selectedFile = fileChooser.showOpenDialog(null);
+
+        // 检查用户是否选择了文件
+        if (selectedFile != null) {
+            // 在这里处理选定的文件
+            packFile(selectedFile, "file");
+        }
+    }
+
+    private void packFile(File selectedFile, String type) {
+        String filePath = selectedFile.getAbsolutePath();
+        System.out.println("Selected image: " + filePath);
+        Chat chat = chatList.getSelectionModel().getSelectedItem();
+
+        // 读取文件内容到字节数组
+        byte[] fileContent;
+        try {
+            fileContent = Files.readAllBytes(Paths.get(filePath));
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Failed to read file: " + filePath);
+            return; // 读取文件失败，结束方法
+        }
+
+        // 使用字节数组创建 Message 对象
+        Message msg = new Message(username, chat.getChatID(), fileContent);
+        msg.setFileName(selectedFile.getName());
+
+        // 设置消息发送时间
+        LocalDateTime time = LocalDateTime.now();
+        msg.setSentTime(time);
+        // 设置消息类型（text）
+        if (type.equals("image")) {
+            msg.setDataType(DataType.MESSAGE_IMAGE_MESSAGE);
+        } else if (type.equals("file")) {
+            msg.setDataType(DataType.MESSAGE_FILE_MESSAGE);
+        }
+
+        // 设置发送对象
+        if (chat.getChatType().equals("private")) {
+            msg.setSendTo(chat.getMembers(username)[0]);
+        }
+
+        // 发送消息
+        clientService.sendMessage(msg);
+
+        chat.getMessages().add(msg);
+        chatContentList.getItems().add(msg);
+    }
+
     // 当聊天对象发生变化时调用此方法
     public void changeChat(List<Message> messagesForNewChat) {
         // 将新聊天的消息列表转换为ObservableList
@@ -386,6 +491,7 @@ public class Controller implements Initializable {
         // 更新ListView中的消息
         chatContentList.setItems(newMessages);
     }
+
 
     /**
      * You may change the cell factory if you changed the design of {@code Message} model. Hint: you
@@ -399,7 +505,7 @@ public class Controller implements Initializable {
             return new ListCell<Message>() {
 
                 @Override
-                public void updateItem(Message msg, boolean empty) { // 更新列表
+                public void updateItem(Message msg, boolean empty) {
                     super.updateItem(msg, empty);
                     if (empty || Objects.isNull(msg)) {
                         setGraphic(null);
@@ -409,24 +515,59 @@ public class Controller implements Initializable {
 
                     HBox wrapper = new HBox();
                     Label nameLabel = new Label(msg.getSentBy());
-                    Label msgLabel = new Label(msg.getData());
+                    Node contentNode;
 
                     nameLabel.setPrefSize(50, 20);
                     nameLabel.setWrapText(true);
                     nameLabel.setStyle("-fx-border-color: black; -fx-border-width: 1px;");
 
-                    if (username.equals(msg.getSentBy())) {
-                        wrapper.setAlignment(Pos.TOP_RIGHT);
-                        wrapper.getChildren().addAll(msgLabel, nameLabel);
-                        msgLabel.setPadding(new Insets(0, 20, 0, 0));
+                    if (msg.getDataType().equals(DataType.MESSAGE_FILE_MESSAGE)) {
+                        System.out.println("File name: " + msg.getFileName());
+                        contentNode = new Label(msg.getFileName());
+                        contentNode.setOnMouseClicked(e -> saveFile(msg, msg.getFileName()));
+                    } else if (msg.getDataType().equals(DataType.MESSAGE_IMAGE_MESSAGE)) {
+                        ImageView imageView = new ImageView(new Image(new ByteArrayInputStream(msg.getDataStream())));
+                        imageView.setFitHeight(150);
+                        imageView.setPreserveRatio(true);
+                        imageView.setSmooth(true);
+                        imageView.setCache(true);
+                        contentNode = imageView;
+                        contentNode.setOnMouseClicked(e -> saveFile(msg, "image.png"));
                     } else {
-                        wrapper.setAlignment(Pos.TOP_LEFT);
-                        wrapper.getChildren().addAll(nameLabel, msgLabel);
-                        msgLabel.setPadding(new Insets(0, 0, 0, 20));
+                        contentNode = new Label(msg.getData());
                     }
 
-                    setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-                    setGraphic(wrapper);
+                    StackPane contentWrapper = new StackPane(contentNode);
+                    contentWrapper.setPadding(new Insets(5));
+
+                    if (username.equals(msg.getSentBy())) {
+                        wrapper.setAlignment(Pos.TOP_RIGHT);
+                        wrapper.getChildren().addAll(contentWrapper, nameLabel);
+                    } else {
+                        wrapper.setAlignment(Pos.TOP_LEFT);
+                        wrapper.getChildren().addAll(nameLabel, contentWrapper);
+                    }
+
+                    Platform.runLater(() -> {
+                        setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+                        setGraphic(wrapper);
+                    });
+                }
+
+
+                private void saveFile(Message msg, String fileName) {
+                    FileChooser fileChooser = new FileChooser();
+                    fileChooser.setTitle("Save File");
+                    fileChooser.setInitialFileName(fileName);
+                    File selectedFile = fileChooser.showSaveDialog(getScene().getWindow());
+
+                    if (selectedFile != null) {
+                        try {
+                            Files.write(selectedFile.toPath(), msg.getDataStream());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             };
         }

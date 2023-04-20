@@ -20,6 +20,10 @@ public class Message implements Serializable {
 
     private String dataType;
 
+    private byte[] dataStream;
+
+    private String fileName;
+
     private LocalDateTime sentTime;
 
     public Message(Long timestamp, String sentBy, String sendTo, String data, String dataType,
@@ -39,6 +43,12 @@ public class Message implements Serializable {
         this.sentBy = sendBy;
         this.chatID = chatID;
         this.data = data;
+    }
+
+    public Message(String sendBy, String chatID, byte[] dataStream) {
+        this.sentBy = sendBy;
+        this.chatID = chatID;
+        this.dataStream = dataStream;
     }
 
     public Message(String username, String messageType) {
@@ -74,6 +84,10 @@ public class Message implements Serializable {
         return chatID;
     }
 
+    public byte[] getDataStream() {
+        return dataStream;
+    }
+
     public void setChatID(String chatID) {
         this.chatID = chatID;
     }
@@ -102,5 +116,16 @@ public class Message implements Serializable {
         this.sentTime = sentTime;
     }
 
+    public void setDataStream(byte[] dataStream) {
+        this.dataStream = dataStream;
+    }
 
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 }

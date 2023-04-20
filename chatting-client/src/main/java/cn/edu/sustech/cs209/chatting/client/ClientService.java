@@ -97,6 +97,10 @@ public class ClientService {
         }
     }
 
+    public int getOnlineCount() {
+        return thread.onlineFriends.size();
+    }
+
     class ConnectionFailedException extends Exception {
 
         public ConnectionFailedException(String message) {

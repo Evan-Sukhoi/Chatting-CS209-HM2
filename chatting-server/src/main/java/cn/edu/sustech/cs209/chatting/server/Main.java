@@ -1,6 +1,7 @@
 package cn.edu.sustech.cs209.chatting.server;
 
 
+import cn.edu.sustech.cs209.chatting.common.Chat;
 import cn.edu.sustech.cs209.chatting.common.Message;
 import cn.edu.sustech.cs209.chatting.common.User;
 import cn.edu.sustech.cs209.chatting.common.DataType;
@@ -30,9 +31,21 @@ public class Main {
             // 从文件中读取用户信息，初始化用户数据库
             String currentDir = System.getProperty("user.dir");
             userMap = ServerService.readUserMap(currentDir + "\\users.csv");
+            // 从文件中读取Chat信息，初始化Chat数据库
+            ServerService.loadChats();
+            System.out.println("用户数据库初始化完成");
 
             System.out.println("在9999端口监听……");
             svrSocket = new ServerSocket(9999);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Server closing. Saving all chats...");
+                for (Chat chat : ServerService.chatList.values()) {
+                    ServerService.saveChatToFile(chat);
+                }
+                System.out.println("All chats saved. Goodbye!");
+            }));
+
             while (true) {
                 Socket socket = svrSocket.accept();
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
@@ -48,29 +61,39 @@ public class Main {
                     ServerService.writeUser(user, currentDir + "\\users.csv");
                     System.out.println("用户【" + user.getUserID() + "】注册成功");
                     login = true;
-                } else if(!ServerService.checkThread(user.getUserID()) && userMap.get(user.getUserID()).getPassword().equals(user.getPassword())){
+                } else if (!ServerService.checkThread(user.getUserID()) && userMap.get(
+                    user.getUserID()).getPassword().equals(user.getPassword())) {
                     System.out.println("用户【" + user.getUserID() + "】登录成功");
                     login = true;
-                }else {
+                } else {
                     msg.setDataType(DataType.MESSAGE_LOGIN_FORBIDDEN);
                     oos.writeObject(msg);
                     socket.close();
                 }
 
-                if (login){
-                    // TODO:
+                if (login) {
                     msg.setDataType(DataType.MESSAGE_LOGIN_PERMITTED);
                     oos.writeObject(msg);
                     ServerThread thread = new ServerThread(socket, user);
                     thread.start();
+
+                    if (ServerService.userChatMap.containsKey(user.getUserID())) {
+                        System.out.println("为用户【" + user.getUserID() + "】更新聊天和离线消息");
+                        for (Chat chat : ServerService.userChatMap.get(user.getUserID())) {
+                            thread.sendChat(chat);
+                        }
+                    }
                     ServerService.addThread(user.getUserID(), thread);
-//                    ServerService.sendOffLineMessage(user.getUserID(), oos);
 
                     // 添加一个关闭线程的检查
                     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                         if (thread.inProgress) {
                             thread.stopRunning();
-                            ServerService.removeThread(user.getUserID());
+                            try {
+                                ServerService.removeThread(user.getUserID());
+                            } catch (IOException e) {
+                                System.out.println("退出聊天时更新刷新在线用户列表失败");
+                            }
                         }
                     }));
                 }

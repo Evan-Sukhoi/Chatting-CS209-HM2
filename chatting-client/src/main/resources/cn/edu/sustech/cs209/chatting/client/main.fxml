@@ -44,17 +44,17 @@
             <ListView fx:id="chatContentList" prefHeight="370.0" prefWidth="671.0" style="-fx-background-color: #ffffff;" />
          <ToolBar prefHeight="85.0" prefWidth="671.0" style="-fx-background-color: #fdf5e6;">
            <items>
-               <Button mnemonicParsing="false" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Emoji">
+               <Button id="emojiButton" mnemonicParsing="false" onAction="#doSendEmoji" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Emoji">
                   <font>
                      <Font name="Monaco" size="12.0" />
                   </font>
                </Button>
-               <Button mnemonicParsing="false" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Image">
+               <Button id="imageButton" mnemonicParsing="false" onAction="#doSendImage" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Image">
                   <font>
                      <Font name="Monaco" size="12.0" />
                   </font>
                </Button>
-             <Button mnemonicParsing="false" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text=" File ">
+             <Button id="fileButton" mnemonicParsing="false" onAction="#doSendFile" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text=" File ">
                   <font>
                      <Font name="Monaco" size="12.0" />
                   </font>

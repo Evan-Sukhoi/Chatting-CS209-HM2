@@ -78,4 +78,17 @@ public class Chat implements Serializable {
             return members;
         }
     }
+
+    public void addMessage(Message msg) {
+        chatContentList.add(msg);
+        latestTime = msg.getSentTime();
+    }
+
+    public LocalDateTime getLatestTime() {
+        return latestTime;
+    }
+
+    public void setLatestTime(LocalDateTime latestTime) {
+        this.latestTime = latestTime;
+    }
 }

@@ -75,9 +75,11 @@ public class ServerThread extends Thread {
             e.printStackTrace();
         }
     }
+
     private void act(Message msg) {
         try {
             switch (msg.getDataType()) {
+
                 case DataType.MESSAGE_GET_ONLINE_FRIEND:
                     System.out.println(
                         "服务器收到来自客户【" + user.getUserID() + "】的在线好友列表请求");
@@ -90,6 +92,7 @@ public class ServerThread extends Thread {
                     oos = new ObjectOutputStream(socket.getOutputStream());
                     oos.writeObject(rtnMsg);
                     break;
+
                 case DataType.MESSAGE_GET_ALL_FRIEND:
                     System.out.println(
                         "服务器收到来自客户【" + user.getUserID() + "】的所有好友列表请求");
@@ -102,59 +105,67 @@ public class ServerThread extends Thread {
                     oos = new ObjectOutputStream(socket.getOutputStream());
                     oos.writeObject(rtnMsg2);
                     break;
+
                 case DataType.MESSAGE_TEXT_MESSAGE:
                     // TODO: Common message display
                     System.out.println("服务器收到来自客户【" + user.getUserID() + "】的文本消息");
-                    //构建一个Message对象，准备回复
-                    Message rtnMsg3 = new Message();
-                    rtnMsg3.setData(msg.getData());
-                    rtnMsg3.setSentTime(msg.getSentTime());
-                    rtnMsg3.setDataType(DataType.MESSAGE_TEXT_MESSAGE);
-                    if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("private")){
+                    //准备回复
+                    if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("private")) {
                         System.out.println("服务器将客户【" + user.getUserID() + "】的私聊文本消息发送给客户【" + msg.getSendTo() + "】");
-                        rtnMsg3.setSendTo(msg.getSendTo());
-                        rtnMsg3.setSentBy(msg.getSentBy());
-                        rtnMsg3.setChatID(msg.getChatID());
-                        ServerService.sendPrvMsg(rtnMsg3);
-                    }else if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("group")){
-                        System.out.println("服务器将客户【" + user.getUserID() + "】的群聊文本消息发送给所有在线客户【" + msg.getSendTo() + "】");
-                        rtnMsg3.setChatID(msg.getChatID());
-                        rtnMsg3.setSentBy(msg.getSentBy());
-                        ServerService.sendGrpMsg(rtnMsg3);
+                        ServerService.sendPrvMsg(msg);
+                    } else if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("group")) {
+                        System.out.println("服务器将客户【" + user.getUserID() + "】的群聊文本消息发送给群聊【" + msg.getSendTo() + "】");
+                        ServerService.sendGrpMsg(msg);
                     }
                     break;
+
                 case DataType.MESSAGE_CLIENT_EXIT:
                     System.out.println("服务器收到来自客户【" + user.getUserID() + "】的退出请求");
                     inProgress = false;
+                    break;
+
+                case DataType.MESSAGE_FILE_MESSAGE:
+                case DataType.MESSAGE_IMAGE_MESSAGE:
+                    //准备回复
+                    System.out.println("服务器收到来自客户【" + user.getUserID() + "】的文件/图片消息: " + msg.getFileName());
+                    if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("private")) {
+                        System.out.println("服务器将客户【" + user.getUserID() + "】的私聊文件/图片消息发送给客户【" + msg.getSendTo() + "】");
+                        ServerService.sendPrvMsg(msg);
+                    } else if (ServerService.chatList.get(msg.getChatID()).getChatType().equals("group")) {
+                        System.out.println("服务器将客户【" + user.getUserID() + "】的群聊文件/图片消息发送群聊【" + msg.getSendTo() + "】");
+                        ServerService.sendGrpMsg(msg);
+                    }
                     break;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    private void act(Chat chat){
+
+    private void act(Chat chat) {
         ServerService.chatList.put(chat.getChatID(), chat);
+        ServerService.saveChatToFile(chat);
         // Server add the chat
-        for (String mem: chat.getMembers()){
-            if(ServerService.userChatMap.containsKey(mem)){
+        for (String mem : chat.getMembers()) {
+            if (ServerService.userChatMap.containsKey(mem)) {
                 ServerService.userChatMap.get(mem).add(chat);
 
-            }else {
+            } else {
                 List<Chat> chats = new ArrayList<>();
                 chats.add(chat);
                 ServerService.userChatMap.put(mem, chats);
             }
         }
         // send the chat to members
-        for(String mem: chat.getMembers()){
-            if(ServerService.checkThread(mem)){
+        for (String mem : chat.getMembers()) {
+            if (ServerService.checkThread(mem)) {
                 ServerService.sendChat(chat, mem);
             }
         }
     }
 
-    public void sendChat(Chat chat){
-        try{
+    public void sendChat(Chat chat) {
+        try {
             oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(chat);
         } catch (IOException e) {
@@ -171,4 +182,14 @@ public class ServerThread extends Thread {
         }
     }
 
+    public void sendOnlineList(String onlineList) throws IOException {
+        //构建一个Message对象，把退出后的在线好友列表发送给客户端
+        Message rtnMsg4 = new Message();
+        rtnMsg4.setDataType(DataType.MESSAGE_RET_ONLINE_FRIEND);
+        rtnMsg4.setSendTo(user.getUserID());
+        rtnMsg4.setSentBy("Server");
+        rtnMsg4.setData(ServerService.getOnlineList());
+        oos = new ObjectOutputStream(socket.getOutputStream());
+        oos.writeObject(rtnMsg4);
+    }
 }
