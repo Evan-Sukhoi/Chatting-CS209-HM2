@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.GridPane?>
+
+<AnchorPane fx:id="rootPane" xmlns="http://javafx.com/javafx"
+  xmlns:fx="http://javafx.com/fxml"
+  fx:controller="cn.edu.sustech.cs209.chatting.client.EmojiPickerController">
+  <VBox fx:id="rootVBox" spacing="5">
+    <ScrollPane fx:id="emojiScrollPane" fitToWidth="true" fitToHeight="true">
+      <GridPane fx:id="emojiGridPane" hgap="10" vgap="10"/>
+    </ScrollPane>
+  </VBox>
+</AnchorPane>

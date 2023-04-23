@@ -17,8 +17,8 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
-    <MenuBar prefHeight="0.0" prefWidth="900.0" VBox.vgrow="NEVER">
+<VBox prefHeight="696.0" prefWidth="902.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cn.edu.sustech.cs209.chatting.client.Controller">
+    <MenuBar prefHeight="0.0" prefWidth="902.0" VBox.vgrow="NEVER">
         <Menu mnemonicParsing="false" text="New">
             <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat" />
             <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat" />
@@ -39,31 +39,40 @@
       </Menu>
     </MenuBar>
     <SplitPane dividerPositions="0.25" focusTraversable="true" VBox.vgrow="ALWAYS">
-        <ListView fx:id="chatList" prefHeight="551.0" prefWidth="45.0" style="-fx-background-color: #fff0f5;" />
-        <SplitPane dividerPositions="0.649854862119013, 0.5" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
-            <ListView fx:id="chatContentList" prefHeight="370.0" prefWidth="671.0" style="-fx-background-color: #ffffff;" />
-         <ToolBar prefHeight="85.0" prefWidth="671.0" style="-fx-background-color: #fdf5e6;">
-           <items>
-               <Button id="emojiButton" mnemonicParsing="false" onAction="#doSendEmoji" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Emoji">
+        <ListView fx:id="chatList" minHeight="-Infinity" minWidth="-Infinity" prefHeight="551.0" prefWidth="0.0" style="-fx-background-color: #fff0f5;" />
+        <SplitPane dividerPositions="1.0, 0.0" orientation="VERTICAL" prefHeight="200.0" prefWidth="160.0">
+            <ListView fx:id="chatContentList" prefHeight="370.0" prefWidth="671.0" SplitPane.resizableWithParent="false" />
+         <HBox prefHeight="100.0" prefWidth="200.0">
+            <children>
+               <ToolBar maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="33.0" prefWidth="600.0" style="-fx-background-color: #fdf5e6;">
+                 <items>
+                     <Button id="emojiButton" mnemonicParsing="false" onAction="#doSendEmoji" prefHeight="23.0" prefWidth="71.0" style="-fx-background-color: #ffffe0;" text="😀Emoji">
+                        <font>
+                           <Font name="Monaco" size="12.0" />
+                        </font>
+                     </Button>
+                     <Button id="imageButton" mnemonicParsing="false" onAction="#doSendImage" prefHeight="23.0" prefWidth="70.0" style="-fx-background-color: #ffffe0;" text="📷Image">
+                        <font>
+                           <Font name="Monaco" size="12.0" />
+                        </font>
+                     </Button>
+                   <Button id="fileButton" mnemonicParsing="false" onAction="#doSendFile" prefHeight="23.0" prefWidth="74.0" style="-fx-background-color: #ffffe0;" text=" 📁File ">
+                        <font>
+                           <Font name="Monaco" size="12.0" />
+                        </font>
+                     </Button>
+                 </items>
+               </ToolBar>
+               <Button id="detailButton" alignment="CENTER" mnemonicParsing="false" onAction="#showDetails" prefHeight="33.0" prefWidth="79.0" style="-fx-background-color: #ffffe0;" text="Details">
                   <font>
                      <Font name="Monaco" size="12.0" />
                   </font>
                </Button>
-               <Button id="imageButton" mnemonicParsing="false" onAction="#doSendImage" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text="Image">
-                  <font>
-                     <Font name="Monaco" size="12.0" />
-                  </font>
-               </Button>
-             <Button id="fileButton" mnemonicParsing="false" onAction="#doSendFile" prefHeight="23.0" prefWidth="60.0" style="-fx-background-color: #ffffe0;" text=" File ">
-                  <font>
-                     <Font name="Monaco" size="12.0" />
-                  </font>
-               </Button>
-           </items>
-         </ToolBar>
-            <HBox prefHeight="252.0" prefWidth="219.0">
-                <TextArea fx:id="inputArea" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="105.0" prefWidth="599.0" style="-fx-control-inner-background: #fffafa;" />
-                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage" prefHeight="110.0" prefWidth="76.0" style="-fx-background-color: #E1FFFF;" text="Send" textAlignment="CENTER" textFill="#49bdd1" HBox.hgrow="ALWAYS">
+            </children>
+         </HBox>
+            <HBox maxWidth="1.7976931348623157E308" prefHeight="114.0" prefWidth="970.0">
+                <TextArea fx:id="inputArea" minHeight="-Infinity" prefHeight="114.0" prefWidth="600.0" style="-fx-control-inner-background: #fffafa;" />
+                <Button maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#doSendMessage" prefHeight="114.0" prefWidth="76.0" style="-fx-background-color: #E1FFFF;" text="Send" textAlignment="CENTER" textFill="#49bdd1" HBox.hgrow="ALWAYS">
                <font>
                   <Font name="Monaco" size="18.0" />
                </font></Button>
