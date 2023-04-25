@@ -50,7 +50,7 @@ public class ServerThread extends Thread {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      System.out.println("java.net.SocketException: Socket closed");
     } finally {
       stopRunning();
     }
@@ -158,7 +158,7 @@ public class ServerThread extends Thread {
     // Server add the chat
     for (String mem : chat.getMembers()) {
       if (ServerService.userChatMap.containsKey(mem)) {
-        ServerService.userChatMap.get(mem).add(chat);
+        ServerService.userChatMap.get(mem).add(0, chat);
 
       } else {
         List<Chat> chats = new ArrayList<>();

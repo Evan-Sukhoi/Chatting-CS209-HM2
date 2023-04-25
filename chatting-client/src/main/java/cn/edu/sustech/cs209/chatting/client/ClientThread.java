@@ -155,10 +155,11 @@ public class ClientThread extends Thread {
         chat.getMessages().add(message);
         try {
           // 如果当前聊天窗口是这个消息的Chat，刷新聊天窗口
-          if (chat.getChatID().equals(
-              controller.chatList.getSelectionModel().getSelectedItem().getChatID())) {
+          if (chat.getChatID().equals(controller.chatList.getSelectionModel().getSelectedItem().getChatID())) {
             controller.chatContentList.getItems().add(message);
             controller.chatContentList.refresh();
+          } else {
+            chat.unread = true;
           }
         } catch (NullPointerException e) {
           // 如果当前没有选择窗口，则选择这个Chat
@@ -219,6 +220,7 @@ public class ClientThread extends Thread {
     Controller.currentChats.put(chat.getChatID(), chat);
     Platform.runLater(() -> {
       controller.items.add(chat);
+      controller.items.sort((c1, c2) -> c2.getLatestTime().compareTo(c1.getLatestTime()));
       controller.chatList.setItems(controller.items);
       controller.chatList.refresh();
     });

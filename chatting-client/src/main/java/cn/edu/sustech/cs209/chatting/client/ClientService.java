@@ -10,6 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.List;
 
 public class ClientService {
 
@@ -98,6 +99,10 @@ public class ClientService {
 
   public int getOnlineCount() {
     return thread.onlineFriends.size();
+  }
+
+  public List<String> getOnlineFriendList() {
+    return thread.onlineFriends;
   }
 
   class ConnectionFailedException extends Exception {

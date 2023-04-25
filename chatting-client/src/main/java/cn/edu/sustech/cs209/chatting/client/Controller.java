@@ -7,10 +7,10 @@ import cn.edu.sustech.cs209.chatting.client.EmojiPickerController.EmojiSelection
 import cn.edu.sustech.cs209.chatting.common.Chat;
 import cn.edu.sustech.cs209.chatting.common.DataType;
 import cn.edu.sustech.cs209.chatting.common.Message;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -18,12 +18,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -32,25 +35,30 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 import javafx.util.Callback;
-
-import java.net.URL;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.ResourceBundle;
-import java.util.concurrent.atomic.AtomicReference;
 import javafx.util.Pair;
-import javax.imageio.ImageIO;
 
 public class Controller implements Initializable {
 
@@ -58,16 +66,12 @@ public class Controller implements Initializable {
   public TextArea inputArea;
   public Label currentUsername;
   public Label currentOnlineCnt;
-  public Button emojiButton;
-  public Button imageButton;
-  public Button fileButton;
   @FXML
   ListView<Message> chatContentList = new ListView<>(); // 聊天内容
   @FXML
   public ListView<Chat> chatList = new ListView<>();  // 会话列表ListView
   public ObservableList<Chat> items = FXCollections.observableArrayList(); // 会话列表Items
   public static ConcurrentHashMap<String, Chat> currentChats = new ConcurrentHashMap<>(); // 会话列表 map
-  public static EmojiSelectionListener listener;
   ClientService clientService;
   String username;
   String password;
@@ -147,6 +151,8 @@ public class Controller implements Initializable {
 
               // 将会话列表的ListView显示为聊天名称
               Platform.runLater(() -> {
+//                chatList.setStyle("-fx-control-inner-background: #F5F5FA;"
+//                    + " -fx-control-inner-background-alt: #F5F6FA;");
                 chatList.setItems(items);
                 chatList.setCellFactory(param -> new ListCell<Chat>() {
                   @Override
@@ -157,6 +163,13 @@ public class Controller implements Initializable {
                     } else {
                       synchronized (chat) {
                         String chatName = chat.getChatName(username);
+                        if (!chat.unread){
+//                          Platform.runLater(() -> setStyle("-fx-background: #F5F5FA;"));
+                          Platform.runLater(() -> setTextFill(Color.BLACK));
+                        }else {
+//                          Platform.runLater(() -> setStyle("-fx-background: #DBFDFF;"));
+                          Platform.runLater(() -> setTextFill(Color.GREEN));
+                        }
                         Platform.runLater(() -> setText(chatName));
                       }
                     }
@@ -169,7 +182,9 @@ public class Controller implements Initializable {
                 if (event.getClickCount() == 1) {
                   Chat chat = chatList.getSelectionModel().getSelectedItem();
                   if (chat != null) {
+                    chat.unread = false;
                     // 将聊天内容显示在聊天窗口
+                    chatList.refresh();
                     ObservableList<Message> messages = FXCollections.observableArrayList();
                     messages.addAll(chat.getMessages());
                     chatContentList.setItems(messages);
@@ -592,9 +607,30 @@ public class Controller implements Initializable {
         chatDetailsStage.setScene(scene);
         chatDetailsStage.show();
       } catch (IOException e) {
-        e.printStackTrace();
+        // 显示警告框
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle("");
+        alert.setHeaderText(null);
+        alert.setContentText("Please choice a chat first");
+
+        ButtonType okButton = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(okButton);
+
+        alert.showAndWait();
       }
     }
+  }
+
+  public void showOnlineFriend(){
+    Stage stage = new Stage();
+    stage.setTitle("Online Friends");
+    ListView<String> listView = new ListView<>();
+    ObservableList<String> items = FXCollections.observableArrayList();
+    items.addAll(clientService.getOnlineFriendList());
+    listView.setItems(items);
+    Scene scene = new Scene(listView, 200, 300);
+    stage.setScene(scene);
+    stage.show();
   }
 
 

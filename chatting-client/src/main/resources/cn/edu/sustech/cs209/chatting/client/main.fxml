@@ -46,24 +46,24 @@
             <children>
                <ToolBar maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="33.0" prefWidth="600.0" style="-fx-background-color: #fdf5e6;">
                  <items>
-                     <Button id="emojiButton" mnemonicParsing="false" onAction="#doSendEmoji" prefHeight="23.0" prefWidth="71.0" style="-fx-background-color: #ffffe0;" text="😀Emoji">
+                     <Button id="emojiButton" mnemonicParsing="false" onAction="#doSendEmoji" prefHeight="23.0" prefWidth="71.0" style="-fx-background-color: #ffffe0;" text="😀Emoji" textFill="#8c5025">
                         <font>
                            <Font name="Monaco" size="12.0" />
                         </font>
                      </Button>
-                     <Button id="imageButton" mnemonicParsing="false" onAction="#doSendImage" prefHeight="23.0" prefWidth="70.0" style="-fx-background-color: #ffffe0;" text="📷Image">
+                     <Button id="imageButton" mnemonicParsing="false" onAction="#doSendImage" prefHeight="23.0" prefWidth="70.0" style="-fx-background-color: #ffffe0;" text="📷Image" textFill="#8c5025">
                         <font>
                            <Font name="Monaco" size="12.0" />
                         </font>
                      </Button>
-                   <Button id="fileButton" mnemonicParsing="false" onAction="#doSendFile" prefHeight="23.0" prefWidth="74.0" style="-fx-background-color: #ffffe0;" text=" 📁File ">
+                   <Button id="fileButton" mnemonicParsing="false" onAction="#doSendFile" prefHeight="23.0" prefWidth="74.0" style="-fx-background-color: #ffffe0;" text=" 📁File " textFill="#8c5025">
                         <font>
                            <Font name="Monaco" size="12.0" />
                         </font>
                      </Button>
                  </items>
                </ToolBar>
-               <Button id="detailButton" alignment="CENTER" mnemonicParsing="false" onAction="#showDetails" prefHeight="33.0" prefWidth="79.0" style="-fx-background-color: #ffffe0;" text="Details">
+               <Button id="detailButton" alignment="CENTER" mnemonicParsing="false" onAction="#showDetails" prefHeight="33.0" prefWidth="79.0" style="-fx-background-color: #ffffe0;" text="Details" textFill="#8c5025">
                   <font>
                      <Font name="Monaco" size="12.0" />
                   </font>
@@ -92,6 +92,6 @@
             </textFill>
         </Label>
         <Pane prefHeight="0.0" prefWidth="702.0" HBox.hgrow="ALWAYS" />
-        <Label fx:id="currentOnlineCnt" font="$x3" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER" />
+        <Label fx:id="currentOnlineCnt" font="$x3" onMouseClicked="#showOnlineFriend" text="Online: 1" textFill="$x4" HBox.hgrow="NEVER" />
     </HBox>
 </VBox>

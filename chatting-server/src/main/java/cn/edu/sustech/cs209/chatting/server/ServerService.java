@@ -66,7 +66,7 @@ public class ServerService {
         (dir, name) -> name.startsWith("chat_") && name.endsWith(".ser"));
     if (files != null) {
       // 处理没有时间的聊天记录
-      LocalDateTime defaultDateTime = LocalDateTime.of(2022, 1, 1, 0, 0); // 设置默认值
+      LocalDateTime defaultDateTime = LocalDateTime.of(2023, 1, 1, 0, 0); // 设置默认值
       for (File file : files) {
         try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(file.toPath()))) {
           Chat chat = (Chat) ois.readObject();
@@ -145,6 +145,8 @@ public class ServerService {
     }
     Chat chat = chatList.get(rtnMsg.getChatID());
     chat.getMessages().add(rtnMsg);
+    chat.setLatestTime(rtnMsg.getSentTime());
+    chat.unread = true;
   }
 
   public static void sendGrpMsg(Message rtnMsg) {
@@ -158,6 +160,8 @@ public class ServerService {
       }
     }
     chat.getMessages().add(rtnMsg);
+    chat.setLatestTime(rtnMsg.getSentTime());
+    chat.unread = true;
   }
 
   public static void sendChat(Chat chat, String receiver) {
@@ -178,20 +182,6 @@ public class ServerService {
       thread.sendMsg(msg);
     }
   }
-
-  public static void sendServerOfflineMsg(Socket socket) throws IOException {
-    Message msg = new Message();
-    for (String user : threadMap.keySet()) {
-      msg.setSendTo(user);
-      msg.setSentBy("server");
-      msg.setDataType(DataType.MESSAGE_OFFLINE_INFORM);
-      System.out.println("发送服务器离线消息给" + user);
-
-      ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-      oos.writeObject(msg);
-    }
-  }
-
   public static void sendPingRtn(Message msg) {
     Message rtnMsg = new Message();
     rtnMsg.setDataType(DataType.MESSAGE_PING_RET);

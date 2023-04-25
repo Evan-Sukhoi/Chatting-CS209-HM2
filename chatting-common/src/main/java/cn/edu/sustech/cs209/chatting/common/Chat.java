@@ -12,9 +12,9 @@ public class Chat implements Serializable {
   private static final long serialVersionUID = 1L; //版本兼容标志
   private final String chatID;
   private String chatName; // 聊天名称(私聊名称可能不一样，故不final)
-  private final String chatType; // 聊天名称
+  private final String chatType; // 聊天类型
   private final String[] members; // 聊天成员
-
+  public boolean unread = false; // 是否未读
   List<Message> chatContentList = new ArrayList<>(); // 聊天内容
 
   LocalDateTime latestTime; // 最后聊天时间
