@@ -22,6 +22,7 @@
         <Menu mnemonicParsing="false" text="New">
             <MenuItem mnemonicParsing="false" onAction="#createPrivateChat" text="New Private Chat" />
             <MenuItem mnemonicParsing="false" onAction="#createGroupChat" text="New Group Chat" />
+            <MenuItem mnemonicParsing="false" onAction="#createOnlineChat" text="Chat with Online Friend" />
         </Menu>
       <Menu mnemonicParsing="false" text="Settings">
         <items>

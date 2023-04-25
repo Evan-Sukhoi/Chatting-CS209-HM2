@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -312,9 +313,11 @@ public class Controller implements Initializable {
           // send the new chat to server
           clientService.sendChat(chat);
         }
-        chatList.getSelectionModel().select(chat);
-        changeChat(chat.getMessages());
+        chatList.getSelectionModel().select(currentChats.get(chat.getChatID()));
+        changeChat(currentChats.get(chat.getChatID()).getMessages());
+
       } catch (RuntimeException e) {
+        e.printStackTrace();
         return;
       }
     }
@@ -393,15 +396,77 @@ public class Controller implements Initializable {
     }
 
     Chat chat = new Chat(users, name);
-    if (!currentChats.contains(chat)) {
+    if (!currentChats.containsKey(chat.getChatID())) {
       currentChats.put(chat.getChatID(), chat);
       items.add(chat);
       chatList.setItems(items);
 
       clientService.sendChat(chat);
     }
-    chatList.getSelectionModel().select(chat);
-    changeChat(chat.getMessages());
+    chatList.getSelectionModel().select(currentChats.get(chat.getChatID()));
+    changeChat(currentChats.get(chat.getChatID()).getMessages());
+  }
+
+
+  public void createOnlineChat(ActionEvent actionEvent) throws InterruptedException {
+    AtomicReference<String> user = new AtomicReference<>();
+
+    // FIXME: get the user list from server, the current user's name should be filtered out
+    clientService.getOnlineList();
+    Thread.sleep(1000);
+    if (clientService.thread.onlineFriends.size() == 0) {
+      System.out.println("no friends online");
+      // 显示警告框 - 当前没有好友
+      Alert alert = new Alert(Alert.AlertType.WARNING);
+      alert.setTitle("No Friends Online");
+      alert.setHeaderText(null);
+      alert.setContentText("Oops, there is no friend online right now.");
+      ButtonType okButton = new ButtonType("OK",
+          ButtonBar.ButtonData.OK_DONE);
+      alert.getButtonTypes().setAll(okButton);
+      alert.showAndWait();
+    } else {
+
+      Stage stage = new Stage();
+      ComboBox<String> userSel = new ComboBox<>();
+      userSel.getItems().addAll(clientService.thread.onlineFriends);
+      userSel.getSelectionModel().selectFirst();
+
+      Button okBtn = new Button("OK");
+      try {
+        okBtn.setOnAction(e -> {
+          user.set(userSel.getSelectionModel().getSelectedItem());
+          stage.close();
+        });
+
+        Label titleLabel = new Label("Select a Friend:");
+        HBox box = new HBox(10);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(30, 40, 40, 40));
+        box.getChildren().addAll(titleLabel, userSel, okBtn);
+        stage.setScene(new Scene(box));
+        stage.showAndWait();
+
+        Chat chat = new Chat(username, user.get());
+        // TODO: if the current user already chatted with the selected user, just open the chat with that user
+        // TODO: otherwise, create a new chat item in the left panel, the title should be the selected user's name
+        if (!currentChats.containsKey(chat.getChatID())) {
+          currentChats.put(chat.getChatID(), chat);
+          items.add(chat);
+          chatList.setItems(items);
+          LocalDateTime now = LocalDateTime.now();
+          chat.setLatestTime(now);
+          // send the new chat to server
+          clientService.sendChat(chat);
+        }
+        chatList.getSelectionModel().select(currentChats.get(chat.getChatID()));
+        changeChat(currentChats.get(chat.getChatID()).getMessages());
+
+      } catch (RuntimeException e) {
+        e.printStackTrace();
+        return;
+      }
+    }
   }
 
   /**
@@ -585,10 +650,16 @@ public class Controller implements Initializable {
   // 当聊天对象发生变化时调用此方法
   public void changeChat(List<Message> messagesForNewChat) {
     // 将新聊天的消息列表转换为ObservableList
-    ObservableList<Message> newMessages = FXCollections.observableArrayList(messagesForNewChat);
+    ObservableList<Message> newMessages = FXCollections.observableArrayList();
+    newMessages.addAll(messagesForNewChat);
 
     // 更新ListView中的消息
     chatContentList.setItems(newMessages);
+    Platform.runLater(() -> {;
+      chatContentList.scrollTo(newMessages.size() - 1);
+      chatContentList.refresh();
+      chatList.refresh();
+    });
   }
 
   public void showDetails() {

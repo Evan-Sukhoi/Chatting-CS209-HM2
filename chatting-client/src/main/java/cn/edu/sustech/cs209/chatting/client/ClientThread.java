@@ -18,6 +18,7 @@ import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.stage.Stage;
 
 public class ClientThread extends Thread {
 
@@ -64,7 +65,7 @@ public class ClientThread extends Thread {
           timer.cancel();
         }
       }
-    }, 3000, 10000); // 每隔5秒钟ping一次服务器
+    }, 3000, 20000); // 每隔20秒钟ping一次服务器
 
     try {
       while (true) {
@@ -92,6 +93,16 @@ public class ClientThread extends Thread {
             ButtonBar.ButtonData.OK_DONE);
         alert.getButtonTypes().setAll(okButton);
         alert.setContentText("Connection error! Please check the server and login again.");
+        // 为OK按钮添加事件处理程序
+        alert.setOnCloseRequest(event -> {
+          // 获取当前窗口
+          Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+          // 关闭当前窗口
+          stage.close();
+          // 关闭程序和所有窗口
+          Platform.exit();
+          System.exit(0);
+        });
         alert.showAndWait();
       });
       controller.windowClosingForServer();
@@ -115,7 +126,7 @@ public class ClientThread extends Thread {
 //                pingLock.wait(10000); // 等待1秒钟
 //            }
 
-      Thread.sleep(100);
+      Thread.sleep(1000); // 等待1秒钟
 
       if (!isServerOnline) {
         // 服务器未响应，认为服务器已离线
